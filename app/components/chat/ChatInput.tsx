@@ -43,7 +43,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
                 <div className="flex-1 relative">
                     <input
                         type="text"
-                        className="w-full bg-[#1e1b2e] text-white placeholder-gray-500 rounded-full px-5 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-inner disabled:opacity-50 transition-all border border-white/10"
+                        className="w-full bg-[#1e1b2e] text-white placeholder-gray-500 rounded-full px-6 py-4 pr-12 focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-inner disabled:opacity-50 transition-all border border-white/10 text-base"
                         placeholder="Type a message..."
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
@@ -54,11 +54,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
 
                 <button
                     type="submit"
-                    className={`p-3 rounded-full bg-gradient-to-r from-primary-600 to-secondary-600 shadow-lg shadow-purple-500/20 text-white transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${!inputText.trim() ? "opacity-70 grayscale" : "hover:shadow-purple-500/40"
+                    className={`p-4 rounded-full bg-gradient-to-r from-primary-600 to-secondary-600 shadow-lg shadow-purple-500/20 text-white transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${!inputText.trim() ? "opacity-70 grayscale" : "hover:shadow-purple-500/40"
                         }`}
                     disabled={disabled || !inputText.trim()}
                 >
-                    <Send size={20} fill="currentColor" />
+                    <Send size={22} fill="currentColor" />
                 </button>
             </form>
         </div>

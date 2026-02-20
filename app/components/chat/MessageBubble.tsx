@@ -29,7 +29,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, o
             )}
 
             <div
-                className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed relative ${isBot
+                className={`max-w-[85%] px-4 py-3 rounded-2xl text-[15px] md:text-sm leading-relaxed relative ${isBot
                     ? "glass-bubble-received rounded-bl-none"
                     : "glass-bubble-sent rounded-br-none"
                     }`}
