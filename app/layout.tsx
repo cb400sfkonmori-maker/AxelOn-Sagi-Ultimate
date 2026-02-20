@@ -16,9 +16,9 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="ja">
-            <body className={`${inter.variable} antialiased bg-[#0a0a0f] text-white min-h-screen flex items-center justify-center font-sans overflow-hidden relative`}>
+            <body className={`${inter.variable} antialiased bg-[#0a0a0f] text-white min-h-screen flex items-center justify-center font-sans overflow-y-auto relative`}>
                 {children}
-                <footer className="absolute bottom-4 w-full text-center text-gray-500 text-[10px] pointer-events-none tracking-widest uppercase">
+                <footer className="absolute bottom-4 w-full text-center text-gray-500 text-[10px] pointer-events-none tracking-widest uppercase py-4">
                     © 2026 AxelOn Inc. | Coming soon
                 </footer>
             </body>
