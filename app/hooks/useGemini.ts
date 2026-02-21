@@ -13,7 +13,10 @@ export const useGemini = () => {
         setError(null);
 
         try {
-            const response = await fetch("/api/chat", {
+            // Vercel環境で確実にバックエンドを叩くため、絶対パスを使用
+            const apiPath = "/api/chat";
+
+            const response = await fetch(apiPath, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -25,8 +28,16 @@ export const useGemini = () => {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to fetch from API");
+                const errorText = await response.text();
+                console.error(`API Error (${response.status}):`, errorText);
+                let errorMessage = "API connection failed";
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.error || errorMessage;
+                } catch (e) {
+                    errorMessage = errorText || errorMessage;
+                }
+                throw new Error(errorMessage);
             }
 
             const reader = response.body?.getReader();
@@ -48,7 +59,7 @@ export const useGemini = () => {
             setIsLoading(false);
 
         } catch (err: any) {
-            console.error("Gemini API Error:", err);
+            console.error("Critical Connection Error:", err);
             const fallbackMsg = "ごめんなさい、今シンガポールの空港で少し電波が不安定みたい...！でもあなたの将来の話、どうしても続きが聞きたいの。✨";
             onUpdate(fallbackMsg);
             onComplete(fallbackMsg);
