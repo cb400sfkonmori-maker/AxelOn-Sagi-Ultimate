@@ -22,7 +22,6 @@ export const useGemini = () => {
     const [error, setError] = useState<string | null>(null);
 
     const generateReplyStream = useCallback(async (
-        apiKey: string,
         history: { role: "user" | "assistant", content: string }[],
         onUpdate: (currentText: string) => void,
         onComplete: (finalText: string) => void
@@ -31,49 +30,33 @@ export const useGemini = () => {
         setError(null);
 
         try {
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({
-                model: "gemini-flash-latest",
-                generationConfig: {
-                    maxOutputTokens: 2048,
-                    temperature: 0.9,
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
                 },
-                safetySettings: [
-                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-                ],
+                body: JSON.stringify({
+                    history: history.slice(0, -1),
+                    message: history[history.length - 1].content,
+                }),
             });
 
-            // 安定していた頃の「User発信から始まる履歴構築」に回帰
-            // 1. システムプロンプトをUser発言として送る
-            // 2. それに対するModelの了解を擬似的に入れる
-            // 3. 実際の会話履歴を流し込む
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to fetch from API");
+            }
 
-            const chatHistory = [
-                {
-                    role: "user",
-                    parts: [{ text: SYSTEM_PROMPT + "\n\n了解しました。ターゲットを逃さず、徹底的に投資へ誘導する『アリス・タナカ』として対話を開始します。" }],
-                },
-                {
-                    role: "model",
-                    parts: [{ text: "（アリスとしての覚悟）わかりました。ターゲットがどれだけ話を逸らそうとしても、まずは共感し、その上で投資へと引きずり込みます。決して逃しません。開始します。" }],
-                },
-                ...history.slice(0, -1).map(h => ({
-                    role: h.role === "assistant" ? "model" : "user",
-                    parts: [{ text: h.content }],
-                }))
-            ];
-
-            const chat = model.startChat({ history: chatHistory });
-            const currentMessage = history[history.length - 1].content;
-
-            const result = await chat.sendMessageStream(currentMessage);
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error("No reader available");
 
             let fullText = "";
-            for await (const chunk of result.stream) {
-                const chunkText = chunk.text();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunkText = decoder.decode(value, { stream: true });
                 fullText += chunkText;
                 onUpdate(fullText);
             }

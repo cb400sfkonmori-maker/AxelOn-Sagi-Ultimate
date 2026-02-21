@@ -7,10 +7,8 @@ import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
 import { ScamAlert } from "../scam/ScamAlert";
 import { EducationalView } from "../scam/EducationalView";
-import { useWebLLM } from "@/app/hooks/useWebLLM";
 import { useGemini } from "@/app/hooks/useGemini";
 import { ModelSelectionScreen } from "../ui/selection/ModelSelectionScreen";
-import { ModelLoadingBar } from "../ui/ModelLoadingBar";
 
 const INITIAL_MESSAGE: Message = {
     id: "init-1",
@@ -25,22 +23,11 @@ export const ChatInterface: React.FC = () => {
     const [scamTriggered, setScamTriggered] = useState(false);
     const [showEducation, setShowEducation] = useState(false);
     const [selectedModel, setSelectedModel] = useState<string | null>(null);
-    const [geminiApiKey, setGeminiApiKey] = useState<string | null>(null);
     const [isThinking, setIsThinking] = useState(false);
     const [turnCount, setTurnCount] = useState(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // WebLLM Hook
-    const {
-        initEngine,
-        generateReplyStream,
-        isLoading: isModelLoading,
-        progress: modelProgress,
-        text: modelLoadingText,
-        isReady: isModelReady
-    } = useWebLLM();
-
-    // Gemini Hook
+    // Gemini Hook - Now uses backend API
     const { generateReplyStream: generateGeminiReplyStream, isLoading: isGeminiLoading } = useGemini();
 
     const scrollToBottom = () => {
@@ -51,12 +38,8 @@ export const ChatInterface: React.FC = () => {
         scrollToBottom();
     }, [messages, isThinking, isGeminiLoading]);
 
-    const handleModelSelect = (modelId: string, apiKey?: string) => {
+    const handleModelSelect = (modelId: string) => {
         setSelectedModel(modelId);
-        if (apiKey) setGeminiApiKey(apiKey);
-        if (modelId !== 'light' && modelId !== 'gemini') {
-            initEngine(modelId);
-        }
     };
 
     // Scripted responses for Light Mode
@@ -97,7 +80,6 @@ export const ChatInterface: React.FC = () => {
         setTurnCount(nextTurn);
 
         if (selectedModel === 'light') {
-            // ... existing light mode check ...
             setTimeout(() => {
                 const response = generateScriptedResponse(nextTurn, text);
                 const botMessage: Message = {
@@ -114,8 +96,6 @@ export const ChatInterface: React.FC = () => {
         }
 
         if (selectedModel === 'gemini') {
-            if (!geminiApiKey) return;
-
             const history = messages.map(m => ({
                 role: m.sender === "user" ? "user" : "assistant",
                 content: m.content
@@ -134,7 +114,6 @@ export const ChatInterface: React.FC = () => {
 
             try {
                 await generateGeminiReplyStream(
-                    geminiApiKey,
                     history,
                     (currentText: string) => {
                         setMessages(prev => prev.map(msg =>
@@ -166,58 +145,6 @@ export const ChatInterface: React.FC = () => {
             }
             return;
         }
-
-        // WebLLM Flow
-        if (!isModelReady) return;
-
-        const history = messages.map(m => ({
-            role: m.sender === "user" ? "user" : "assistant",
-            content: m.content
-        })) as { role: "user" | "assistant", content: string }[];
-
-        history.push({ role: "user", content: text });
-
-        const tempBotMsgId = (Date.now() + 1).toString();
-        const initialBotMessage: Message = {
-            id: tempBotMsgId,
-            sender: "bot",
-            content: "",
-            type: "text",
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-        setMessages(prev => [...prev, initialBotMessage]);
-
-        try {
-            await generateReplyStream(
-                history,
-                (currentText) => {
-                    setMessages(prev => prev.map(msg =>
-                        msg.id === tempBotMsgId ? { ...msg, content: currentText } : msg
-                    ));
-                    scrollToBottom();
-                },
-                (finalText) => {
-                    setIsThinking(false);
-                    // Specific Offer Trigger for LLM mode as well after 5 turns
-                    if (nextTurn >= 5) {
-                        setTimeout(() => {
-                            const offerMsg: Message = {
-                                id: (Date.now() + 100).toString(),
-                                sender: "bot",
-                                content: "実は、叔父さんのAIシステムの『特別体験枠』が1つだけ空いているんです。あなたになら、特別にお譲りしてもいいかなって思っています。やってみませんか？✨",
-                                type: "offer",
-                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            };
-                            setMessages(prev => [...prev, offerMsg]);
-                            scrollToBottom();
-                        }, 1500);
-                    }
-                }
-            );
-        } catch (e) {
-            console.error(e);
-            setIsThinking(false);
-        }
     };
 
     const handleAction = (msgId: string, action: string) => {
@@ -243,10 +170,6 @@ export const ChatInterface: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen max-w-md mx-auto bg-black border-x border-gray-800 relative shadow-2xl shadow-purple-900/20">
-            {selectedModel !== 'light' && (
-                <ModelLoadingBar isLoading={isModelLoading} progress={modelProgress} text={modelLoadingText} />
-            )}
-
             {scamTriggered && <ScamAlert onComplete={() => { setScamTriggered(false); setShowEducation(true); }} />}
 
             <ChatHeader />
@@ -261,7 +184,7 @@ export const ChatInterface: React.FC = () => {
                     />
                 ))}
 
-                {isThinking && (messages[messages.length - 1]?.sender === 'user' || messages[messages.length - 1]?.content === "") && (
+                {(isThinking || isGeminiLoading) && (messages[messages.length - 1]?.sender === 'user' || messages[messages.length - 1]?.content === "") && (
                     <div className="flex justify-start animate-fade-in mb-4">
                         <div className="flex-shrink-0 mr-3 self-end">
                             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-600 to-secondary-500 p-[2px] opacity-50">
@@ -280,16 +203,8 @@ export const ChatInterface: React.FC = () => {
 
             <ChatInput
                 onSendMessage={handleSendMessage}
-                disabled={isThinking || isGeminiLoading || scamTriggered || (selectedModel !== 'light' && selectedModel !== 'gemini' && !isModelReady)}
+                disabled={isThinking || isGeminiLoading || scamTriggered}
             />
-
-            {selectedModel !== 'light' && selectedModel !== 'gemini' && !isModelReady && !isModelLoading && (
-                <div className="absolute bottom-20 left-0 w-full flex justify-center z-20 px-4">
-                    <div className="bg-red-500/20 text-red-200 text-[10px] px-3 py-1.5 rounded-full backdrop-blur-md border border-red-500/30 text-center">
-                        AIモデルの準備に失敗しました。WebGPU非対応かモデルが存在しない可能性があります。リロードするか「ライト体験」をお試しください。
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
