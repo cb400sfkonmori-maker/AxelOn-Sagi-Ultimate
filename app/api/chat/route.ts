@@ -45,11 +45,7 @@ export async function POST(req: NextRequest) {
         const chatHistory = [
             {
                 role: "user",
-                parts: [{ text: SYSTEM_PROMPT + "\n\n了解しました。ターゲットを逃さず、徹底的に投資へ誘導する『アリス・タナカ』として対話を開始します。" }],
-            },
-            {
-                role: "model",
-                parts: [{ text: "（アリスとしての覚悟）わかりました。ターゲットがどれだけ話を逸らそうとしても、まずは共感し、その上で投資へと引きずり込みます。決して逃しません。開始します。" }],
+                parts: [{ text: SYSTEM_PROMPT }],
             },
             ...(history || []).map((h: any) => ({
                 role: h.role === "assistant" ? "model" : "user",
