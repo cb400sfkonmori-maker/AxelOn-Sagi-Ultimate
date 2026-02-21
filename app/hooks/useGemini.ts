@@ -13,8 +13,8 @@ export const useGemini = () => {
         setError(null);
 
         try {
-            // Vercel環境で確実にバックエンドを叩くため、絶対パスを使用
-            const apiPath = "/api/chat";
+            // window.location.origin を使用して確実に自サーバーを叩き、キャッシュ回避のタイムスタンプを付与
+            const apiPath = `${window.location.origin}/api/chat?t=${Date.now()}`;
 
             const response = await fetch(apiPath, {
                 method: "POST",

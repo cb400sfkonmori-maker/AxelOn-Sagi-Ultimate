@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-        return NextResponse.json({ error: "API key is not configured" }, { status: 500 });
+        console.error("SERVER_CONFIG_ERROR: GEMINI_API_KEY is not defined in environment variables.");
+        return NextResponse.json({ error: "SERVER_CONFIG_ERROR: API key is not configured on the server." }, { status: 500 });
     }
 
     try {
