@@ -51,13 +51,12 @@ export async function POST(req: NextRequest) {
                 role: "model",
                 parts: [{ text: "（アリスとしての覚悟）わかりました。ターゲットがどれだけ話を逸らそうとしても、まずは共感し、その上で投資へと引きずり込みます。決して逃しません。開始します。" }],
             },
-            ...history.map((h: any) => ({
+            ...(history || []).map((h: any) => ({
                 role: h.role === "assistant" ? "model" : "user",
-                parts: [{ text: h.content }],
+                parts: [{ text: h.content || "" }],
             }))
         ];
 
-        // We'll use streaming for better UX
         const chat = model.startChat({ history: chatHistory });
         const result = await chat.sendMessageStream(message);
 
